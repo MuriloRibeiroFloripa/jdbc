@@ -1,48 +1,81 @@
 package application;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-
-import db.DB;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
 /* API:
- * Statement
- * ResultSet
- * o next() [move para o próximo, retorna false se já estiver no último]
+ *  PreparedStatement
+ *  executeUpdate
+ *  Statement.RETURN_GENERATED_KEYS
+ *  getGeneratedKeys
  * 
- * programa para recuperar os departamentos
- * Na classe DB, criar métodos auxiliares estáticos
- * para fechar ResultSet e Statement 
+ * Checklist:
+ *  Inserção simples com preparedStatement
+ *  Inserção com recuperação de Id
+ *  
  */
+
+import db.DB;
 
 public class Program {
 
 	public static void main(String[] args) {
 
-		Connection conn = null; // variavel que conecta ao banco de dados
-		Statement st = null; // prepara uma consulta SQL para fazer a busca dos dados ao banco de dados
-		ResultSet rs = null; // resultado sera armazenado na variavel rs.
-		
+		SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+		Connection conn = null;
+		PreparedStatement st = null; //inserir
 		try {
-			conn = DB.getConnection(); // conecta ao banco de dados
-	
-			st = conn.createStatement(); // variavel st instanciando Statement
-			                             // comando SQL, atraves da coneção do banco ja instanciada.
+			conn = DB.getConnection(); //conexao com banco
+
+			// EXAMPLE 1:
+			st = conn.prepareStatement(
+					"INSERT INTO seller "
+					+ "(Name, Email, BirthDate, BaseSalary, DepartmentId) "
+					+ "VALUES "
+					+ "(?, ?, ?, ?, ?)", //placeholder (?) para preecher depois
+					Statement.RETURN_GENERATED_KEYS);
+
+			st.setString(1, "Carl Purple");
+			st.setString(2, "carl@gmail.com");
+			st.setDate(3, new java.sql.Date(sdf.parse("22/04/1985").getTime()));
+			st.setDouble(4, 3000.0);
+			st.setInt(5, 4);
 			
-			rs = st.executeQuery("select * from department"); // resultadado da consulta atribuir a variavel
-			                                                  // rs do ResultSet
+			/*
+			// EXAMPLE 2:
+			st = conn.prepareStatement(
+			"insert into department (Name) values ('D1'),('D2')", 
+			Statement.RETURN_GENERATED_KEYS);
+			*/
 			
-			while (rs.next()) {
-				System.out.println(rs.getInt("Id") + ", " + rs.getString("Name"));
+			//quantas linhas foram alteradas BD.
+			int rowsAffected = st.executeUpdate();
+			
+			System.out.println("Quantas linhas foram atualizada no BD: "+ rowsAffected);
+			
+			if (rowsAffected > 0) {
+				ResultSet rs = st.getGeneratedKeys();
+				while (rs.next()) {
+					int id = rs.getInt(1); //valor da primeira coluna
+					System.out.println("Done! Id: " + id);
+				}
+			}
+			else {
+				System.out.println("No rows affected!");
 			}
 		}
 		catch (SQLException e) {
 			e.printStackTrace();
+		} 
+		catch (ParseException e) {
+			e.printStackTrace();
 		}
-		finally { //fechando os recursos
-			DB.closeResultSet(rs);
+		finally {
 			DB.closeStatement(st);
 			DB.closeConnection();
 		}
