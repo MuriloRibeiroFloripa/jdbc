@@ -8,7 +8,8 @@ public class Program {
 	
 
 	public static void main(String[] args) {
-		//testa a conexão
+		
+		// testa a conexao com banco de dados
 		Connection conn = DB.getConnection();
 		DB.closeConnection();
 	}
